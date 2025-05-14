@@ -1,4 +1,7 @@
 Flask==2.1.1
+werkzeug==2.2.3
 transformers==4.49.0
 torch==2.6.0
+pymongo[srv]
 contractions
+regex==2023.12.25
