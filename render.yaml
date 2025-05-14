@@ -3,6 +3,6 @@ services:
     name: scamx-api
     env: python
     buildCommand: ""
-    startCommand: python app.py
+    startCommand: gunicorn -w 4 app:app
     plan: free
     autoDeploy: true
