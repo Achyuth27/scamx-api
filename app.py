@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 from pymongo import MongoClient
+from dotenv import load_dotenv
 import os, re, unicodedata, contractions
+
+# Load .env variables (for local testing)
+load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
