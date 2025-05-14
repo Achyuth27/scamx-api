@@ -1,27 +1,34 @@
 from flask import Flask, request, jsonify
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
-import re, unicodedata, contractions
+from pymongo import MongoClient
+import os, re, unicodedata, contractions
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Load the model and tokenizer from Hugging Face
+# Load the Hugging Face model and tokenizer
 MODEL_NAME = "JeswinMS4/scam-alert-mobile-bert"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 
-# Initialize the pipeline for text classification
+# Initialize the pipeline
 scam_classifier = pipeline("text-classification", model=model, tokenizer=tokenizer)
+
+# Connect to MongoDB
+mongo_uri = os.environ.get("MONGO_URI")
+client = MongoClient(mongo_uri)
+db = client["scamx"]
+messages_collection = db["messages"]
 
 # Text cleaning function
 def clean_text(text):
     text = unicodedata.normalize("NFKD", text)      # Normalize unicode characters
     text = contractions.fix(text)                   # Expand contractions
     text = re.sub(r"[^\w\s]", "", text)             # Remove punctuation
-    text = text.lower().strip()                     # Convert to lowercase and trim
+    text = text.lower().strip()                     # Lowercase and trim
     return text
 
-# Define the route for classifying messages
+# API endpoint to predict message
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -32,12 +39,19 @@ def predict():
         raw_text = data["message"]
         cleaned_text = clean_text(raw_text)
 
-        # Get model prediction
+        # Model prediction
         prediction = scam_classifier(cleaned_text)[0]
         label = prediction['label']
         confidence = round(prediction['score'] * 100, 2)
 
-        # Return response
+        # Store in MongoDB
+        messages_collection.insert_one({
+            "message": raw_text,
+            "cleaned": cleaned_text,
+            "label": label,
+            "confidence": confidence
+        })
+
         return jsonify({
             "input": raw_text,
             "label": label,
@@ -47,7 +61,7 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Run the Flask app
+# Run Flask app
 if __name__ == "__main__":
     print("🔧 Server running on http://127.0.0.1:5000")
     app.run(debug=True, host="0.0.0.0", port=5000)
