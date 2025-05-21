@@ -20,7 +20,7 @@ scam_classifier = pipeline("text-classification", model=model, tokenizer=tokeniz
 
 # Connect to MongoDB
 mongo_uri = os.environ.get("MONGO_URI")
-client = MongoClient(mongo_uri, tls=True, tlsAllowInvalidCertificates=True)
+client = MongoClient(mongo_uri)
 db = client["scamx"]
 messages_collection = db["messages"]
 
